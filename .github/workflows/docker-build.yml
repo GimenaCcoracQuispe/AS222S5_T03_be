@@ -1,0 +1,30 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - develop  # Activar el flujo de trabajo en la rama 'develop'
+  pull_request:
+    branches:
+      - develop  # Activar el flujo de trabajo en los pull requests a la rama 'develop'
+
+jobs:
+  docker_build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: Clonar el código
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      # Paso 2: Iniciar sesión en Docker Hub
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Paso 3: Construir la imagen Docker
+      - name: Build Docker image
+        run: docker build . -t ${{ secrets.DOCKER_USERNAME }}/servicio_actions:latest  # Nombre de la imagen 'servicio_actions'
+
+      # Paso 4: Subir la imagen Docker a Docker Hub
+      - name: Push Docker image to Docker Hub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/servicio_actions:latest  # Nombre de la imagen 'servicio_actions'
