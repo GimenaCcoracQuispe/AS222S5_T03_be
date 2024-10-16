@@ -8,12 +8,15 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  docker_build_and_push:
-    name: Build and Push Docker Image
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3  # Actualizado a v3
+        uses: actions/checkout@v3
+
+      # Build JAR with Maven
+      - name: Build JAR
+        run: mvn clean package
 
       # Log in to Docker Hub
       - name: Log in to Docker Hub
