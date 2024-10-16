@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: '17'
+          distribution: 'temurin'  # Especifica la distribución de Java
 
       - name: Build JAR
         run: ./mvnw clean package  # Asegúrate de que esto coincide con tu configuración de Maven.
