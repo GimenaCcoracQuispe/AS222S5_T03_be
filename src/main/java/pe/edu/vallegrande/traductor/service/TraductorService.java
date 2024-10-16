@@ -11,21 +11,26 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import pe.edu.vallegrande.traductor.model.Traslator;
+import pe.edu.vallegrande.traductor.respository.TraslatorRepository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
 public class TraductorService {
-     private static final String TRANSLATOR_KEY = "c680f7e1534147cda16247264de58e1d"; 
-    private static final String TRANSLATOR_LOCATION = "centralindia";
+     private static final String TRANSLATOR_KEY = "91d63c3b3440407da3f9898ecd869c52"; 
+    private static final String TRANSLATOR_LOCATION = "eastasia";
     private static final String TRANSLATOR_ENDPOINT = "https://api.cognitive.microsofttranslator.com/";
     private static final String TRANSLATOR_ROUTE = "/translate?api-version=3.0";
     private static final String TRANSLATOR_URL = TRANSLATOR_ENDPOINT.concat(TRANSLATOR_ROUTE);
 
     private final OkHttpClient client;
+	private final TraslatorRepository traslatorRepository;
 
-    public TraductorService(){
+    public TraductorService(TraslatorRepository traslatorRepository){
         this.client = new OkHttpClient();
+        this.traslatorRepository = traslatorRepository;
     }
 
      public Mono<String> translateText(String text, String from, String to) {
@@ -68,5 +73,30 @@ public class TraductorService {
         }
         return null;
     }
+
+    public Mono<String> editTranslation(Long traslatorId, String newText, String from, String to) {
+		return traslatorRepository.findById(traslatorId).flatMap(traslator -> {
+			// Aquí realizamos la nueva traducción
+			return translateText(newText, from, to).flatMap(newTranslatedText -> {
+				// Actualizamos el objeto de traducción con el nuevo texto
+				traslator.setTranslated_text(newTranslatedText);
+				traslator.setInput_text(newText);
+				traslator.setFrom_language(from);
+				traslator.setTo_language(to);
+				// Guardamos la traducción actualizada en la base de datos
+				return traslatorRepository.save(traslator);
+			});
+		}).map(Traslator::getTranslated_text).switchIfEmpty(
+				Mono.error(new RuntimeException("Traducción no encontrada con el ID: " + traslatorId)));
+	}
+    
+    public Flux<Traslator> getActiveTranslations() {
+        return traslatorRepository.findAllByState("A");
+    }
+    
+    public Flux<Traslator> getInactiveTranlations() {
+        return traslatorRepository.findAllByState("I");
+    }
+
 
 }
