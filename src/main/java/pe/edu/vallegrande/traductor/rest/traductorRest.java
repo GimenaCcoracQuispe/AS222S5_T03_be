@@ -26,7 +26,6 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @Slf4j
-@CrossOrigin(origins = "*")
 @RequestMapping("/api")
 public class traductorRest {
 
