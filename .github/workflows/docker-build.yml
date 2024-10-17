@@ -32,7 +32,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build . -t gimenac/servicio_actions:latest  # Reemplaza con tu nombre de usuario real
+        run: docker build . -t gimenac/servicio_actions:latest  
 
       - name: Push Docker image
         run: docker push gimenac/servicio_actions:latest  # Reemplaza con tu nombre de usuario real
