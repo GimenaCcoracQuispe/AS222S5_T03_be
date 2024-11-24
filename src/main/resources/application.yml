@@ -3,9 +3,5 @@ spring:
     name: traductor
   r2dbc:
     url: ${DATABASE_URL}
-
-api:
-  key: ${API_KEY}
-
-server:
-  port: 8080
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
