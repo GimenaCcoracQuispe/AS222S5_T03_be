@@ -1,10 +1,13 @@
 package pe.edu.vallegrande.traductor.service;
 
 import java.io.IOException;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -19,7 +22,11 @@ import reactor.core.publisher.Mono;
 @Service
 @Slf4j
 public class TraductorService {
-     private static final String TRANSLATOR_KEY = "91d63c3b3440407da3f9898ecd869c52"; 
+
+
+    @Value("${api.key}")
+    private String apiKey;
+
     private static final String TRANSLATOR_LOCATION = "eastasia";
     private static final String TRANSLATOR_ENDPOINT = "https://api.cognitive.microsofttranslator.com/";
     private static final String TRANSLATOR_ROUTE = "/translate?api-version=3.0";
@@ -33,34 +40,36 @@ public class TraductorService {
         this.traslatorRepository = traslatorRepository;
     }
 
-     public Mono<String> translateText(String text, String from, String to) {
+    public Mono<String> translateText(String text, String from, String to) {
         return Mono.fromCallable(() -> {
             MediaType mediaType = MediaType.parse("application/json");
-            String requestBody = "[{\"Text\": \"" + text + "\"}]";
-            String urlWithParams = TRANSLATOR_URL + "&from=" + from + "&to=" + to;
+            String requestBody = "[{\"Text\": \"" + text + "\"}]";  // Estructura del cuerpo de la solicitud
+            String urlWithParams = TRANSLATOR_URL + "&from=" + from + "&to=" + to;  // URL con parámetros de idioma
             RequestBody body = RequestBody.create(mediaType, requestBody);
+            
+            // Crear la solicitud HTTP con la clave de suscripción y los encabezados necesarios
             Request request = new Request.Builder()
                 .url(urlWithParams)
                 .post(body)
-                .addHeader("Ocp-Apim-Subscription-Key", TRANSLATOR_KEY)
+                .addHeader("Ocp-Apim-Subscription-Key", apiKey)
                 .addHeader("Ocp-Apim-Subscription-Region", TRANSLATOR_LOCATION)
                 .addHeader("Content-type", "application/json")
                 .build();
-            
+    
             try (Response response = client.newCall(request).execute()) {
                 if (response.isSuccessful()) {
-                    String responseBody = response.body().string();
-                    return extractTranslatedText(responseBody);
+                    String responseBody = response.body().string();  // Obtener el cuerpo de la respuesta
+                    return extractTranslatedText(responseBody);  // Extraer el texto traducido de la respuesta JSON
                 } else {
-                    throw new IOException("Unexpected response code: " + response);
+                    throw new IOException("Unexpected response code: " + response);  // Manejar errores si la respuesta no es exitosa
                 }
             }
         }).onErrorMap(error -> {
             log.error("Error translating text: {}", error.getMessage());
-            return new IOException("Error translating text", error);
+            return new IOException("Error translating text", error);  // Manejo de errores
         });
     }
-
+    
     private String extractTranslatedText(String responseBody) {
         JsonParser parser = new JsonParser();
         JsonArray translationsArray = parser.parse(responseBody).getAsJsonArray();
@@ -96,6 +105,10 @@ public class TraductorService {
     
     public Flux<Traslator> getInactiveTranlations() {
         return traslatorRepository.findAllByState("I");
+    }
+
+    public Flux<Traslator> getFavoritosTranlations() {
+        return traslatorRepository.findAllByState("F");
     }
 
 

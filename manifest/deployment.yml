@@ -1,0 +1,30 @@
+# kubectl apply -f deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-moderator-be
+  namespace: luis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: content-moderator-be
+  template:
+    metadata:
+      labels:
+        app: content-moderator-be
+    spec:
+      containers:
+      - name: content-moderator-be
+        image: luistasayco2004/traductor_back1:v1.0  # Reemplaza con tu imagen Docker
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials                # Nombre del Secret
+              key: DATABASE_URL
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: database-credentials                # Nombre del Secret
+              key: API_KEY                       # Clave dentro del Secret

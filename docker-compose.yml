@@ -1,0 +1,10 @@
+version: '3'
+services:
+
+  app:
+    image: luistasayco2004/traductor_back1:v1.0
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      API_KEY: ${API_KEY}

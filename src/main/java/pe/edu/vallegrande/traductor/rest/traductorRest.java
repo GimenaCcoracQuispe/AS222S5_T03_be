@@ -1,6 +1,5 @@
 package pe.edu.vallegrande.traductor.rest;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @Slf4j
+@CrossOrigin(origins = "*")
 @RequestMapping("/api")
 public class traductorRest {
 
@@ -81,6 +81,19 @@ public class traductorRest {
 				});
 	}
 
+	@GetMapping("/favoritos")
+	public Mono<ResponseEntity<List<Traslator>>> getFavoritosTranlations() {
+		return traslatorRepository.findAllByState("F")
+				.collectList()
+				.map(translations -> {
+					if (translations.isEmpty()) {
+						return ResponseEntity.noContent().build();
+					} else {
+						return ResponseEntity.ok(translations);
+					}
+				});
+	}
+
 	@GetMapping("/{id}")
 	public Mono<ResponseEntity<Traslator>> getTranslationById(@PathVariable Long id) {
 		return traslatorRepository.findById(id)
@@ -94,21 +107,23 @@ public class traductorRest {
 		String from = requestBody.getFrom();
 		String to = requestBody.getTo();
 
-		return traductorService.translateText(text, from, to).flatMap(translatedText -> {
-			Traslator traslator = new Traslator();
-			traslator.setInput_text(text);
-			traslator.setTranslated_text(translatedText);
-			traslator.setFrom_language(from);
-			traslator.setTo_language(to);
-			traslator.setState("A"); // Cambiar status por state
-
-			return traslatorRepository.save(traslator)
-					.map(savedTranslation -> ResponseEntity.status(HttpStatus.OK)
-							.body("Translation saved successfully"));
-		}).onErrorResume(error -> {
-			log.error("Error translating text: {}", error.getMessage());
-			return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error translating text"));
-		});
+		return traductorService.translateText(text, from, to)
+				.flatMap(translatedText -> {
+					Traslator traslator = new Traslator();
+					traslator.setInput_text(text);
+					traslator.setTranslated_text(translatedText);
+					traslator.setFrom_language(from);
+					traslator.setTo_language(to);
+					traslator.setState("A"); 
+					return traslatorRepository.save(traslator)
+							.then(Mono.just(ResponseEntity.status(HttpStatus.OK)
+									.body(translatedText)));
+				})
+				.onErrorResume(error -> {
+					log.error("Error translating text: {}", error.getMessage());
+					return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+							.body("Error translating text"));
+				});
 	}
 
 	@DeleteMapping("/delete/{id}")
@@ -139,6 +154,42 @@ public class traductorRest {
 		return traductorService.editTranslation(id, newText, from, to)
 				.map(updatedText -> ResponseEntity.ok().body(updatedText))
 				.defaultIfEmpty(ResponseEntity.notFound().build());
+	}
+
+	@PutMapping("/restaurar/{id}")
+	public Mono<ResponseEntity<String>> restoreTranslation(@PathVariable Long id) {
+		return traslatorRepository.findById(id)
+				.flatMap(traslator -> {
+					traslator.setState("A");
+					return traslatorRepository.save(traslator)
+							.then(Mono.just(ResponseEntity.status(HttpStatus.OK)
+									.body("Traducción restaurada exitosamente")));
+				})
+				.switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
+						.body("Traducción no encontrada")))
+				.onErrorResume(error -> {
+					log.error("Error restoring translation: {}", error.getMessage());
+					return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+							.body("Error al restaurar la traducción"));
+				});
+	}
+
+	@PutMapping("/favoritos/{id}")
+	public Mono<ResponseEntity<String>> favoritoTranslation(@PathVariable Long id) {
+		return traslatorRepository.findById(id)
+				.flatMap(traslator -> {
+					traslator.setState("F");
+					return traslatorRepository.save(traslator)
+							.then(Mono.just(ResponseEntity.status(HttpStatus.OK)
+									.body("Traducción Movida a Favoritos")));
+				})
+				.switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
+						.body("Traducción no encontrada")))
+				.onErrorResume(error -> {
+					log.error("Error restoring translation: {}", error.getMessage());
+					return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+							.body("Error al mover a Favoritos"));
+				});
 	}
 
 }
